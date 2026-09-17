@@ -1,46 +1,67 @@
 const express = require('express');
-const axios = require('axios'); 
+const https = require('https'); 
 
 const app = express();
-const port = 3000;
+// Render अपने आप पोर्ट 3000 सेट कर लेगा
+const port = process.env.PORT || 3000;
 
-// JSON डेटा सपोर्ट के लिए
 app.use(express.json());
 
 // 1. होम रूट (सर्वर चेक करने के लिए)
 app.get('/', (req, res) => {
-    res.json({ success: true, message: "Suresh AI Server is Active!" });
+    res.json({ success: true, message: "Suresh AI Server is Active on Render!" });
 });
 
-// 2. Suresh AI रूट (Ollama से कनेक्ट करने के लिए)
-app.get('/api/suresh-ai', async (req, res) => {
+// 2. Suresh AI रूट (Groq / Llama 3 से कनेक्ट करने के लिए)
+app.get('/api/suresh-ai', (req, res) => {
     const userPrompt = req.query.prompt || "Hello Suresh AI";
     
-    try {
-        // Llama 3 को सीधा और आसान रिक्वेस्ट
-   const ollamaResponse = await axios.post('http://127.0.0.1:11434/api/generate', {   
-            model: "llama3",
-            prompt: userPrompt,
-            stream: false
-        });
+    // Llama 3 (Groq) को रिक्वेस्ट का डेटा
+    const postData = JSON.stringify({
+        model: "llama3-8b-8192",
+        messages: [{ role: "user", content: userPrompt }]
+    });
 
-        // Android ऐप को रिस्पॉन्स वापस भेजना
-        res.json({
-            success: true,
-            question: userPrompt,
-            answer: ollamaResponse.data.response
-        });
+    const options = {
+        hostname: 'api.groq.com',
+        port: 443,
+        path: '/openai/v1/chat/completions',
+        method: 'POST',
+        headers: {
+            'Authorization': `Bearer ${process.env.API_KEY_GROQ}`,
+            'Content-Type': 'application/json',
+            'Content-Length': Buffer.byteLength(postData)
+        }
+    };
 
-    } catch (error) {
-        console.error("Ollama Connection Error:", error.message);
-        res.json({ 
-            success: false, 
-            message: "Ollama is not running. Please open CMD and run: ollama run llama3" 
+    const groqReq = https.request(options, (groqRes) => {
+        let responseData = '';
+        groqRes.on('data', (chunk) => { responseData += chunk; });
+        groqRes.on('end', () => {
+            try {
+                const parsedData = JSON.parse(responseData);
+                // Android ऐप को रिस्पॉन्स वापस भेजना
+                res.json({
+                    success: true,
+                    question: userPrompt,
+                    answer: parsedData.choices[0].message.content
+                });
+            } catch (e) {
+                res.json({ success: false, question: userPrompt, answer: "API Error: अपनी Groq API Key चेक करें।" });
+            }
         });
-    }
+    });
+
+    groqReq.on('error', (error) => {
+        console.error("Connection Error:", error);
+        res.json({ success: false, question: userPrompt, answer: "Server Error" });
+    });
+
+    groqReq.write(postData);
+    groqReq.end();
 });
 
-// 3. सर्वर चालू रखने के लिए (0.0.0.0 लगाने से फोन से भी कनेक्ट होगा)
-app.listen(3000, '0.0.0.0', () => {
-    console.log("Server running on port 3000 and accessible on network");
+// 3. सर्वर चालू रखने के लिए
+app.listen(port, '0.0.0.0', () => {
+    console.log(`Server running on port ${port}`);
 });
