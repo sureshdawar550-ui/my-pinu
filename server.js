@@ -28,7 +28,8 @@ app.get('/api/suresh-ai', (req, res) => {
         path: '/openai/v1/chat/completions',
         method: 'POST',
         headers: {
-            'Authorization': `Bearer ${process.env.API_KEY_GROQ}`,
+            // 👇 यहाँ नीचे अपनी असली Groq की चाबी डालें 👇
+            'Authorization': 'Bearer gsk_यहा_अपनी_असली_चाबी_पेस्ट_करे',
             'Content-Type': 'application/json',
             'Content-Length': Buffer.byteLength(postData)
         }
@@ -40,6 +41,12 @@ app.get('/api/suresh-ai', (req, res) => {
         groqRes.on('end', () => {
             try {
                 const parsedData = JSON.parse(responseData);
+                
+                // अगर फिर भी चाबी गलत हुई तो
+                if (parsedData.error) {
+                     return res.json({ success: false, question: userPrompt, answer: "Groq Error: " + parsedData.error.message });
+                }
+
                 // Android ऐप को रिस्पॉन्स वापस भेजना
                 res.json({
                     success: true,
@@ -47,7 +54,7 @@ app.get('/api/suresh-ai', (req, res) => {
                     answer: parsedData.choices[0].message.content
                 });
             } catch (e) {
-                res.json({ success: false, question: userPrompt, answer: "API Error: अपनी Groq API Key चेक करें।" });
+                res.json({ success: false, question: userPrompt, answer: "API Error: जवाब को समझने में दिक्कत हुई।" });
             }
         });
     });
