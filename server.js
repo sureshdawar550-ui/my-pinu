@@ -26,7 +26,7 @@ app.get('/api/suresh-ai', (req, res) => {
     }
 
     const postData = JSON.stringify({
-        model: "llama-3.3-70b-versatile",
+        model: "openai/gpt-oss-20b",
         messages: [
             {
                 role: "user",
