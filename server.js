@@ -17,11 +17,13 @@ app.get('/api/suresh-ai', (req, res) => {
     const userPrompt = req.query.prompt || "Hello Suresh AI";
     
     // Llama 3 (Groq) को रिक्वेस्ट का डेटा
-    const postData = JSON.stringify({
-        model: "llama3-8b-8192",
-        messages: [{ role: "user", content: userPrompt }]
-    });
-
+   const postData = JSON.stringify({
+    model: "llama-3.1-8b-instant",
+    messages: [{ role: "user", content: userPrompt }]
+       
+});
+        
+    
     const options = {
         hostname: 'api.groq.com',
         port: 443,
@@ -29,7 +31,7 @@ app.get('/api/suresh-ai', (req, res) => {
         method: 'POST',
         headers: {
             // 👇 यहाँ नीचे अपनी असली Groq की चाबी डालें 👇
-            'Authorization': 'Bearer gsk_यहा_अपनी_असली_चाबी_पेस्ट_करे',
+            'Authorization': `Bearer ${process.env.GROQ_API_KEY}`,
             'Content-Type': 'application/json',
             'Content-Length': Buffer.byteLength(postData)
         }
